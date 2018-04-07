@@ -88,7 +88,7 @@ def downloadFile(filename, src):
 def init():
     createVideoDirectory(videoDirectory)
     catalog = getCatalog()
-    videos = getVideoList(catalog[0:2])
+    videos = getVideoList(catalog)
     downloadVideos(videos)
 
 init()
