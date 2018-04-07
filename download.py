@@ -1,7 +1,7 @@
 import httplib2
 import urllib
 import os, errno
-import collections
+import itertools
 from BeautifulSoup import BeautifulSoup, SoupStrainer
 
 http = httplib2.Http()
@@ -10,7 +10,29 @@ siteUrl = 'https://www.destroyallsoftware.com'
 siteCatalog =  '/screencasts/catalog/'
 videoDirectory = 'videos/'
 
-class bcolors:
+class Video(object):
+    filename = ''
+    url = ''
+
+    def __init__(self, url):
+        self.filename = self.getVideoName(url)
+        self.url = self.getVideoSource(url)
+
+    def __str__(self):
+        return 'Video: ' + self.filename
+
+    # Return filename for video
+    def getVideoName(self, url):
+        videoUrl, videoParams = url.split('?')
+        _, videoName = videoUrl.split('.com/')
+        return videoName
+
+    # Return full url
+    def getVideoSource(self, url):
+        videoSource = url.split('"')
+        return videoSource[1].replace('amp;', '')
+
+class colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -30,8 +52,10 @@ def getCatalog():
     return catalog
 
 # Extract script tags that contain video info
+# A video might contain more than one file (multiple resolutions)
+# Flatten the returned video list
 def getVideoList(catalog):
-    print bcolors.OKBLUE + 'Getting video info for all videos, this might take a while...' + bcolors.ENDC
+    print colors.OKBLUE + 'Getting video info for all videos, this might take a while...\n' + colors.ENDC
     videos = []
     for video in catalog:
         status, response = http.request(siteUrl + video)
@@ -39,12 +63,12 @@ def getVideoList(catalog):
             videoUrl = getVideoUrl(script)
             if len(videoUrl):
                 videos.append(videoUrl)
-    return videos
+    return list(itertools.chain(*videos))
 
 # Get video URLs from script tag, filter out non unique urls
 def getVideoUrl(script):
     scriptText = str(script)
-    scriptTags = []
+    videos = []
     if 'resolution' in scriptText:
         urls = []
         for line in scriptText.split('\n'):
@@ -53,55 +77,45 @@ def getVideoUrl(script):
         uniqueUrls = set(urls)
         for url in uniqueUrls:
             video = getVideoData(url)
-            scriptTags.append(video)
-    return scriptTags
+            videos.append(video)
+    return videos
 
 # Obtain neccesary info to download video
 def getVideoData(url):
     cleanUrl = url.replace(' ', '')
-    videoName = getVideoName(url)
-    videoSource = getVideoSource(url)
-    return videoName, videoSource
+    return Video(cleanUrl)
 
 # Create video directory if not exists
 def createVideoDirectory(dir):
     if not os.path.exists(dir):
-        print bcolors.WARNING + 'Creating video directory at ' + dir + bcolors.ENDC
+        print colors.WARNING + '\nCreating video directory at ' + colors.OKBLUE + dir + '\n' + colors.ENDC
         os.makedirs(dir)
     else:
-        print bcolors.WARNING + 'Video directory already exists ' + videoDirectory + bcolors.ENDC
+        print colors.WARNING + '\nVideo directory ' + colors.OKBLUE + dir + colors.WARNING +' already exists\n' + colors.ENDC
 
+# Call a download for every video
 def downloadVideos (videos):
     for video in videos:
-        print video[0]
-    # res = downloadFile(videoName, videoSource)
-    # print bcolors.OKGREEN + res + bcolors.ENDC
+        res = downloadFile(video.filename, video.url)
+        print colors.OKGREEN + res + colors.ENDC
 
+# Download video
 def downloadFile(filename, src):
-    print bcolors.OKBLUE + 'Downloading ' + filename + bcolors.ENDC
+    print colors.OKBLUE + 'Downloading ' + filename + colors.ENDC
     response = urllib.urlopen(src)
     filepath = os.path.join(videoDirectory, filename)
-    # if not os.path.exists(videoDirectory + filename):
-    #     with open(videoDirectory + filename,'wb') as f:
-    #         f.write(response.read())
-    return 'Downloaded!\n\n'
-
-# Return filename for video
-def getVideoName(url):
-    videoUrl, videoParams = url.split('?')
-    _, videoName = videoUrl.split('.com/')
-    return videoName
-
-# Return full url
-def getVideoSource(url):
-    videoSource = url.split('"')
-    return videoSource[1].replace('amp;', '')
+    if not os.path.exists(videoDirectory + filename):
+        with open(videoDirectory + filename,'wb') as f:
+            f.write(response.read())
+    else:
+        return colors.FAIL + 'ERROR: Video ' + filename +' already exists\n' + colors.ENDC
+    return 'SUCCESS: Video downloaded!\n'
 
 # Run download
 def init():
     createVideoDirectory(videoDirectory)
     catalog = getCatalog()
-    videos = getVideoList(catalog)
+    videos = getVideoList(catalog[0:2])
     downloadVideos(videos)
 
 init()
