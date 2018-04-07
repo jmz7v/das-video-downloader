@@ -1,6 +1,6 @@
 # DaS video downloader
 
-Download videos from DaS [https://destroyallsoftware.com](destroyallsoftware.com).
+Download videos from [https://destroyallsoftware.com](destroyallsoftware.com).
 
 ## Requirements
 
