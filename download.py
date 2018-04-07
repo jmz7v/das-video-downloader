@@ -1,46 +1,19 @@
+# Libraries
 import httplib2
 import urllib
 import os, errno
 import itertools
 from BeautifulSoup import BeautifulSoup, SoupStrainer
 
+# Classes
+from video import Video
+from colors import Colors
+
 http = httplib2.Http()
 
 siteUrl = 'https://www.destroyallsoftware.com'
 siteCatalog =  '/screencasts/catalog/'
 videoDirectory = 'videos/'
-
-class Video(object):
-    filename = ''
-    url = ''
-
-    def __init__(self, url):
-        self.filename = self.getVideoName(url)
-        self.url = self.getVideoSource(url)
-
-    def __str__(self):
-        return 'Video: ' + self.filename
-
-    # Return filename for video
-    def getVideoName(self, url):
-        videoUrl, videoParams = url.split('?')
-        _, videoName = videoUrl.split('.com/')
-        return videoName
-
-    # Return full url
-    def getVideoSource(self, url):
-        videoSource = url.split('"')
-        return videoSource[1].replace('amp;', '')
-
-class colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 # Store all videos from DaS inside catalog
 def getCatalog():
@@ -55,7 +28,7 @@ def getCatalog():
 # A video might contain more than one file (multiple resolutions)
 # Flatten the returned video list
 def getVideoList(catalog):
-    print colors.OKBLUE + 'Getting video info for all videos, this might take a while...\n' + colors.ENDC
+    print Colors.OKBLUE + 'Getting video info for all videos, this might take a while...\n' + Colors.ENDC
     videos = []
     for video in catalog:
         status, response = http.request(siteUrl + video)
@@ -88,27 +61,27 @@ def getVideoData(url):
 # Create video directory if not exists
 def createVideoDirectory(dir):
     if not os.path.exists(dir):
-        print colors.WARNING + '\nCreating video directory at ' + colors.OKBLUE + dir + '\n' + colors.ENDC
+        print Colors.WARNING + '\nCreating video directory at ' + Colors.OKBLUE + dir + '\n' + Colors.ENDC
         os.makedirs(dir)
     else:
-        print colors.WARNING + '\nVideo directory ' + colors.OKBLUE + dir + colors.WARNING +' already exists\n' + colors.ENDC
+        print Colors.WARNING + '\nVideo directory ' + Colors.OKBLUE + dir + Colors.WARNING +' already exists\n' + Colors.ENDC
 
 # Call a download for every video
 def downloadVideos (videos):
     for video in videos:
         res = downloadFile(video.filename, video.url)
-        print colors.OKGREEN + res + colors.ENDC
+        print Colors.OKGREEN + res + Colors.ENDC
 
 # Download video
 def downloadFile(filename, src):
-    print colors.OKBLUE + 'Downloading ' + filename + colors.ENDC
+    print Colors.OKBLUE + 'Downloading ' + filename + Colors.ENDC
     response = urllib.urlopen(src)
     filepath = os.path.join(videoDirectory, filename)
     if not os.path.exists(videoDirectory + filename):
         with open(videoDirectory + filename,'wb') as f:
             f.write(response.read())
     else:
-        return colors.FAIL + 'ERROR: Video ' + filename +' already exists\n' + colors.ENDC
+        return Colors.FAIL + 'ERROR: Video ' + filename +' already exists\n' + Colors.ENDC
     return 'SUCCESS: Video downloaded!\n'
 
 # Run download
